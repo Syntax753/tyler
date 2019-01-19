@@ -1,5 +1,7 @@
 package main
 
+// import "fmt"
+
 var (
 	worldX, worldY int
 )
@@ -22,7 +24,7 @@ func NewLocation(x, y int) Location {
 
 // MovePlayer the player
 func MovePlayer(p Mover, hor, vert int) Location {
-	loc := Location{p.GetLocation().x + hor, (p.GetLocation().y + vert) * worldX}
+	loc := Location{p.GetLocation().x + hor, p.GetLocation().y + vert}
 	return loc
 }
 
@@ -31,4 +33,31 @@ type Mover interface {
 	Move(*Players) Location
 	GetType() string
 	GetLocation() Location
+}
+
+// Move moves a single player
+func (p *Player) Move(ps *Players) Location {
+	worldX = ps.X
+	worldY = ps.Y
+
+	// fmt.Printf("&&&&&&&&&&&&&&%v", p)
+
+	var d = p.GetLocation()
+
+	switch p.GetType() {
+	case "player":
+		switch ps.LastKey {
+		case "a":
+			d = MovePlayer(p, -1, 0)
+		case "d":
+			d = MovePlayer(p, 1, 0)
+		case "w":
+			d = MovePlayer(p, 0, -1)
+		case "s":
+			d = MovePlayer(p, 0, 1)
+		}
+	}
+
+	return d
+
 }

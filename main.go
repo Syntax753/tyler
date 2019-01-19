@@ -13,43 +13,65 @@ var (
 	o Mozart
 )
 
+const (
+	empty = "."
+	wall  = "#"
+)
+
 // Players stores all players and grid size
 type Players struct {
-	Locations map[Location]*Player
-	LastKey   string
-	X         int
-	Y         int
+	Players []*Player
+	LastKey string
+	X       int
+	Y       int
 }
 
-// GetPlayers returns all players
-func (p *Players) GetPlayers() []*Player {
-	ps := make([]*Player, 0, len(p.Locations))
-	for _, v := range p.Locations {
-		ps = append(ps, v)
+// GetLocations returns all players
+func (ps *Players) GetLocations() map[Location]*Player {
+	locs := make(map[Location]*Player)
+	for _, p := range ps.Players {
+		locs[p.Location] = p
 	}
 
-	return ps
+	// fmt.Printf("Locations are %v\n", locs)
+	return locs
 }
 
 func newPlayers(w world) *Players {
-	cnt := len(w.Ents)
+	var ps Players
+	ps.Players = make([]*Player, len(w.Ents))
+	ps.X = w.X
+	ps.Y = w.Y
 
-	var p Players
-	p.Locations = make(map[Location]*Player, cnt)
-	p.X = w.X
-	p.Y = w.Y
+	if w.Iswalled {
+		for i := 0; i < w.X; i++ {
+			ent := Player{
+				Location: NewLocation(i, 0),
+				Type:     "wall",
+				Symbol:   wall,
+			}
 
-	for _, ent := range w.Ents {
-		origin := ent
-		p.Locations[NewLocation(ent.X, ent.Y*w.X)] = &origin
+			ps.Players = append(ps.Players, &ent)
+
+			ent2 := Player{
+				Location: NewLocation(i, w.Y-1),
+				Type:     "wall",
+				Symbol:   wall,
+			}
+
+			ps.Players = append(ps.Players, &ent2)
+
+		}
 	}
 
-	return &p
-}
+	for i, ent := range w.Ents {
+		origin := ent
+		origin.SetLocation(NewLocation(ent.X, ent.Y))
+		ps.Players[i] = &origin
+	}
 
-const (
-	empty = "."
-)
+	return &ps
+}
 
 var (
 	reader = bufio.NewReader(os.Stdin)
@@ -67,11 +89,10 @@ func main() {
 
 	var w world
 	json.Unmarshal(byteValue, &w)
-	p := newPlayers(w)
+	ps := newPlayers(w)
 	o = NewMozart(w.X, w.Y)
 
-	game(p)
-
+	game(ps)
 }
 
 func game(ps *Players) {
@@ -95,10 +116,13 @@ func game(ps *Players) {
 }
 
 func draw(ps *Players) {
+	locs := ps.GetLocations()
+
 	var ch string
 	for y := 0; y < ps.Y; y++ {
 		for x := 0; x < ps.X; x++ {
-			ent, ok := ps.Locations[NewLocation(x, y)]
+			loc := NewLocation(x, y)
+			ent, ok := locs[loc]
 			if ok {
 				ch = ent.Symbol
 			} else {
@@ -112,24 +136,9 @@ func draw(ps *Players) {
 
 }
 
-type world struct {
-	X    int      `json:"x"`
-	Y    int      `json:"y"`
-	Ents []Player `json:"ents"`
-}
-
-// Player represents an object in the world
-type Player struct {
-	Ref    string `json:"ref"`
-	Symbol string `json:"symbol"`
-	Type   string `json:"type"`
-	X      int    `json:"x"`
-	Y      int    `json:"y"`
-}
-
 // SetLocation finalises the position of the player
 func (p *Player) SetLocation(loc Location) {
-	p.X, p.Y = loc.GetCoords()
+	p.Location = loc
 }
 
 // GetType returns the type (should be movement pref)
@@ -137,34 +146,24 @@ func (p *Player) GetType() string {
 	return p.Type
 }
 
-// Move moves a single player
-func (p *Player) Move(ps *Players) Location {
-	worldX = ps.X
-	worldY = ps.Y
-
-	fmt.Printf("&&&&&&&&&&&&&&%v", p)
-
-	var d = p.GetLocation()
-
-	switch p.GetType() {
-	case "player":
-		switch ps.LastKey {
-		case "a":
-			d = MovePlayer(p, -1, 0)
-		case "d":
-			d = MovePlayer(p, 1, 0)
-		case "w":
-			d = MovePlayer(p, 0, -1)
-		case "s":
-			d = MovePlayer(p, 0, 1)
-		}
-	}
-
-	return d
-
-}
-
 // GetLocation gives coords of the player
 func (p *Player) GetLocation() Location {
-	return Location{p.X, p.Y}
+	return p.Location
+}
+
+type world struct {
+	X        int      `json:"x"`
+	Y        int      `json:"y"`
+	Ents     []Player `json:"ents"`
+	Iswalled bool     `json:"iswalled"`
+}
+
+// Player represents an object in the world
+type Player struct {
+	Ref      string `json:"ref"`
+	Symbol   string `json:"symbol"`
+	Type     string `json:"type"`
+	Location Location
+	X        int
+	Y        int
 }
