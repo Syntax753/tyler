@@ -1,0 +1,17 @@
+{
+    "x": 10,
+    "y": 10,
+    "ents": [{
+        "ref":1,
+        "symbol":"@",
+        "type": "player",
+        "x": 5,
+        "y": 0
+    },{
+        "ref":2,
+        "symbol":"a",
+        "type": "monster",
+        "x": 7,
+        "y": 0
+    }]
+}
